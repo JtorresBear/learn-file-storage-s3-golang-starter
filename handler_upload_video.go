@@ -2,11 +2,13 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"mime"
 	"net/http"
 	"os"
 
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/bootdotdev/learn-file-storage-s3-golang-starter/internal/auth"
 	"github.com/google/uuid"
 )
@@ -82,4 +84,29 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	encodedVideoString, err := getRandomURLEncoding()
+	if err != nil {
+		respondWithError(w, 500, "couldn't encode", err)
+		return
+	}
+	key := fmt.Sprintf("%v.mp4", encodedVideoString)
+	_, err = cfg.s3Client.PutObject(r.Context(), &s3.PutObjectInput{
+		Bucket:      &cfg.s3Bucket,
+		Key:         &key,
+		Body:        file,
+		ContentType: &mediaType,
+	})
+	if err != nil {
+		respondWithError(w, 500, "Couldn't make put object", err)
+		return
+	}
+	videoURLString := fmt.Sprintf("https://%v.s3.%v.amazonaws.com/%v", cfg.s3Bucket, cfg.s3Region, key)
+	video.VideoURL = &videoURLString
+	err = cfg.db.UpdateVideo(video)
+	if err != nil {
+		respondWithError(w, 500, "Couldn't update video", err)
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, video)
 }
