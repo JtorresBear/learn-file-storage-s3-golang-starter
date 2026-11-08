@@ -14,6 +14,8 @@ func getVideoAspectRation(filepath string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	var results RatioResp
+	random := "WORDS"
 	return "", nil
 }
 
