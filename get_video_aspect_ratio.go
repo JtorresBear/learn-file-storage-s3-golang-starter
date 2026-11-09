@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"os/exec"
 )
 
@@ -15,7 +16,11 @@ func getVideoAspectRation(filepath string) (string, error) {
 		return "", err
 	}
 	var results RatioResp
-	random := "WORDS"
+
+	if err := json.Unmarshal(buf.Bytes(), &results); err != nil {
+		return "", err
+	}
+
 	return "", nil
 }
 
