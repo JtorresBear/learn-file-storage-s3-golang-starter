@@ -77,23 +77,47 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 		respondWithError(w, 500, "can't copy file", err)
 		return
 	}
+	processedFilePath, err := processVideoForFastStart(file.Name())
+	if err != nil {
+		respondWithError(w, 500, "Couldn't process video", err)
+		return
+	}
+	processedFile, err := os.Open(processedFilePath)
+	if err != nil {
+		respondWithError(w, 500, "Couldn't open processed file", err)
+		return
+	}
+	defer os.Remove(processedFilePath)
+	defer processedFile.Close()
 
 	_, err = file.Seek(0, io.SeekStart)
 	if err != nil {
 		respondWithError(w, 500, "can't seek", err)
 		return
 	}
-
+	aspect, err := getVideoAspectRation(file.Name())
+	if err != nil {
+		respondWithError(w, 500, "Unable to get aspect ratio", err)
+		return
+	}
+	switch aspect {
+	case "16:9":
+		aspect = "landscape"
+	case "9:16":
+		aspect = "portrait"
+	default:
+		aspect = "other"
+	}
 	encodedVideoString, err := getRandomURLEncoding()
 	if err != nil {
 		respondWithError(w, 500, "couldn't encode", err)
 		return
 	}
-	key := fmt.Sprintf("%v.mp4", encodedVideoString)
+	key := fmt.Sprintf("%v/%v.mp4", aspect, encodedVideoString)
 	_, err = cfg.s3Client.PutObject(r.Context(), &s3.PutObjectInput{
 		Bucket:      &cfg.s3Bucket,
 		Key:         &key,
-		Body:        file,
+		Body:        processedFile,
 		ContentType: &mediaType,
 	})
 	if err != nil {

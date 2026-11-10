@@ -20,8 +20,22 @@ func getVideoAspectRation(filepath string) (string, error) {
 	if err := json.Unmarshal(buf.Bytes(), &results); err != nil {
 		return "", err
 	}
+	if len(results.Streams) < 1 {
+		return "", err
+	}
+	if results.Streams[0].Height < 1 {
+		return "", err
+	}
+	ratio := float64(results.Streams[0].Width) / float64(results.Streams[0].Height)
 
-	return "", nil
+	switch {
+	case ratio > 1.6 && ratio < 1.8:
+		return "16:9", nil
+	case ratio > 0.55 && ratio < 0.57:
+		return "9:16", nil
+	default:
+		return "other", nil
+	}
 }
 
 type RatioResp struct {
