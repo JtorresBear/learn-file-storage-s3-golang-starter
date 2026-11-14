@@ -9,3 +9,7 @@ Content-Type: application/json
 }
 
 ###
+
+POST http://localhost:8091/admin/reset
+
+###

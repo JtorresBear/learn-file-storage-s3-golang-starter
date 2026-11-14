@@ -135,14 +135,16 @@ func (cfg *apiConfig) handlerVideosRetrieve(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	var signedVideos []database.Video
-
-	for _, video := range videos {
-		signedVideo, err := cfg.dbVideoToSignedVideo(video)
-		if err != nil {
-			respondWithError(w, 500, "Problem with signing url", err)
-			return
+	if len(videos) > 0 {
+		for _, video := range videos {
+			signedVideo, err := cfg.dbVideoToSignedVideo(video)
+			if err != nil {
+				respondWithError(w, 500, "Problem with signing url", err)
+				return
+			}
+			signedVideos = append(signedVideos, signedVideo)
 		}
-		signedVideos = append(signedVideos, signedVideo)
 	}
+
 	respondWithJSON(w, http.StatusOK, signedVideos)
 }
