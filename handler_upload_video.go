@@ -61,7 +61,7 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	if mediaType != "video/mp4" {
-		respondWithError(w, 500, "Non matching content type", err)
+		respondWithError(w, 400, "Non matching content type", err)
 		return
 	}
 	file, err := os.CreateTemp("", "tubely-upload.mp4")
@@ -124,13 +124,18 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 		respondWithError(w, 500, "Couldn't make put object", err)
 		return
 	}
-	videoURLString := fmt.Sprintf("https://%v.s3.%v.amazonaws.com/%v", cfg.s3Bucket, cfg.s3Region, key)
+	videoURLString := fmt.Sprintf("%v,%v", cfg.s3Bucket, key)
 	video.VideoURL = &videoURLString
 	err = cfg.db.UpdateVideo(video)
 	if err != nil {
 		respondWithError(w, 500, "Couldn't update video", err)
 		return
 	}
+	signedVideo, err := cfg.dbVideoToSignedVideo(video)
+	if err != nil {
+		respondWithError(w, 500, "Couldn't sign video URL", err)
+		return
+	}
 
-	respondWithJSON(w, http.StatusOK, video)
+	respondWithJSON(w, http.StatusOK, signedVideo)
 }
